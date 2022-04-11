@@ -1,0 +1,42 @@
+{
+  "app":{
+    "version": "1.0.0",
+    "name": "trading_bot"
+  },
+  "logger":{
+    "log_level": "debug",
+    "rollbar_env": "trading_bot"
+  },
+  "postgres":{
+    "pool_max": 2
+  },
+  "CryptoCurrencies":[
+    {
+      "CurrencyId": 2001,
+      "BalancePercent": 0.8,
+      "ThresholdPercent": 0.1,
+      "ThresholdAbs": 0.2,
+      "SellMultiplier": 1.005,
+      "BuyMultiplier": 0.995,
+      "TimeoutMinutes": 60,
+      "InternalSettings": {
+        "Url": "",
+        "Key": "",
+        "Secret": "",
+        "Pair": "BTC,USDC",
+        "Currency": "BTC",
+        "CryptoAddress": "",
+        "UsdcUsageLimit": 0.4
+      },
+      "TradingSettings": {
+        "Url": "https://poloniex.com",
+        "Key": "",
+        "Secret": "",
+        "Pair": "USDC_BTC",
+        "Currency": "BTC",
+        "CryptoAddress": "",
+        "UsdcUsageLimit": 0.8
+      }
+    }
+  ]
+}
