@@ -15,7 +15,7 @@ type BalanceManager struct {
 	notify  chan error
 }
 
-func New(ctx context.Context, wg *sync.WaitGroup, cryptoCurrencies []config.CryptoCurrency, l logger.Interface) (*BalanceManager, error) {
+func New(ctx context.Context, wg *sync.WaitGroup, cryptoCurrencies []config.CryptoCurrency, l logger.ILogger) (*BalanceManager, error) {
 	if len(cryptoCurrencies) == 0 {
 		return nil, errors.New("balancemanager no currencies provided")
 	}

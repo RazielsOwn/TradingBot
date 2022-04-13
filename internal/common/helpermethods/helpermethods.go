@@ -12,10 +12,10 @@ import (
 )
 
 type HelperMethods struct {
-	logger logger.Interface
+	logger logger.ILogger
 }
 
-func New(l logger.Interface) *HelperMethods {
+func New(l logger.ILogger) *HelperMethods {
 	return &HelperMethods{
 		logger: l,
 	}
@@ -43,13 +43,6 @@ func (hm HelperMethods) HttpGet(ctx context.Context, url *url.URL, contentType s
 			req.Header.Set(key, val)
 		}
 	}
-
-	// appending to existing query args
-	//q := req.URL.Query()
-	// q.Add("foo", "bar")
-
-	// assign encoded query string to http request
-	//req.URL.RawQuery = q.Encode()
 
 	resp, err := client.Do(req)
 	if err != nil {

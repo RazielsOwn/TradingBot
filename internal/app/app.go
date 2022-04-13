@@ -12,7 +12,6 @@ import (
 	"trading_bot/config"
 	balancemanager "trading_bot/pkg/balance/manager"
 	"trading_bot/pkg/logger"
-	"trading_bot/pkg/postgres"
 
 	"github.com/shopspring/decimal"
 )
@@ -22,12 +21,6 @@ func Run(cfg *config.Config) {
 	l := logger.New(cfg.Log.Level)
 
 	decimal.DivisionPrecision = 8
-	// Repository
-	pg, err := postgres.New(cfg.PG.URL, postgres.MaxPoolSize(cfg.PG.PoolMax))
-	if err != nil {
-		l.Fatal(fmt.Errorf("app - Run - postgres.New: %w", err))
-	}
-	defer pg.Close()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup

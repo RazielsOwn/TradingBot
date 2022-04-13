@@ -17,7 +17,7 @@ import (
 )
 
 type BalanceWorker struct {
-	logger                logger.Interface
+	logger                logger.ILogger
 	settings              config.CryptoCurrency
 	tradingSystemRequests common.ITradingSystemRequest
 	internalRequests      common.IInternalRequest
@@ -26,7 +26,7 @@ type BalanceWorker struct {
 	running               bool
 }
 
-func New(ctx context.Context, wg *sync.WaitGroup, currencySettings config.CryptoCurrency, l logger.Interface, err chan error) (*BalanceWorker, error) {
+func New(ctx context.Context, wg *sync.WaitGroup, currencySettings config.CryptoCurrency, l logger.ILogger, err chan error) (*BalanceWorker, error) {
 	s := &BalanceWorker{
 		notify:                err,
 		running:               false,

@@ -17,7 +17,7 @@ import (
 )
 
 type PoloniexRequests struct {
-	logger        logger.Interface
+	logger        logger.ILogger
 	helperMethods common.IHelperMethods
 	cacheUpdate   time.Time
 	balanceCache  map[string]*entity.BalanceObject
@@ -26,7 +26,7 @@ type PoloniexRequests struct {
 	secretKey     string
 }
 
-func New(l logger.Interface, hm common.IHelperMethods, cs config.TradingSettings) *PoloniexRequests {
+func New(l logger.ILogger, hm common.IHelperMethods, cs config.TradingSettings) *PoloniexRequests {
 	return &PoloniexRequests{
 		logger:        l,
 		helperMethods: hm,

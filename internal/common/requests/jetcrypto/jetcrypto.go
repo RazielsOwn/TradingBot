@@ -17,7 +17,7 @@ import (
 )
 
 type JetCryptoRequests struct {
-	logger        logger.Interface
+	logger        logger.ILogger
 	helperMethods common.IHelperMethods
 	cacheUpdate   time.Time
 	balancesCache []*entity.BalanceObject
@@ -26,7 +26,7 @@ type JetCryptoRequests struct {
 	secretKey     string
 }
 
-func New(l logger.Interface, hm common.IHelperMethods, cs config.InternalSettings) *JetCryptoRequests {
+func New(l logger.ILogger, hm common.IHelperMethods, cs config.InternalSettings) *JetCryptoRequests {
 	return &JetCryptoRequests{
 		logger:        l,
 		helperMethods: hm,
