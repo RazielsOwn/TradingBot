@@ -3,7 +3,6 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -12,6 +11,7 @@ import (
 	"trading_bot/config"
 	balancemanager "trading_bot/pkg/balance/manager"
 	"trading_bot/pkg/logger"
+	tradingmanager "trading_bot/pkg/trading/manager"
 
 	"github.com/shopspring/decimal"
 )
@@ -27,7 +27,13 @@ func Run(cfg *config.Config) {
 
 	balancemanager, err := balancemanager.New(ctx, &wg, cfg.CryptoCurrencies, l)
 	if err != nil {
-		l.Fatal(fmt.Errorf("app - Run - BalanceManager.New: %w", err))
+		l.Fatal("app - Run - BalanceManager.New: %w", err)
+	}
+	balancemanager.Start()
+
+	tradingmanager, err1 := tradingmanager.New(ctx, &wg, cfg.CryptoCurrencies, l)
+	if err1 != nil {
+		l.Fatal("app - Run - TradingManager.New: %w", err1)
 	}
 	balancemanager.Start()
 
@@ -39,7 +45,9 @@ func Run(cfg *config.Config) {
 	case s := <-interrupt:
 		l.Info("app - Run - signal: " + s.String())
 	case err = <-balancemanager.Notify():
-		l.Error(fmt.Errorf("app - Run - BalanceManager.Notify: %w", err))
+		l.Error("app - Run - BalanceManager.Notify: %w", err)
+	case err = <-tradingmanager.Notify():
+		l.Error("app - Run - TradingManager.Notify: %w", err)
 	}
 
 	cancel()

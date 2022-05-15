@@ -30,6 +30,8 @@ type (
 		GetOrders(ctx context.Context, jetCryptoPair string) map[uuid.UUID]*entity.InternalOrder
 		GetOrder(ctx context.Context, orderId uuid.UUID, jetCryptoPair string) *entity.InternalOrder
 		IsPaymentCompleted(ctx context.Context, orderId uuid.UUID) bool
+		RemoveOrder(ctx context.Context, orderId uuid.UUID, currencyFrom string, currencyTo string) bool
+		AddOrder(ctx context.Context, currencyFrom string, currencyTo string, amount decimal.Decimal, price decimal.Decimal, isSellOrder bool) (bool, uuid.UUID)
 		GetCompleteOrder(ctx context.Context, orderId uuid.UUID, jetCryptoPair string) []*entity.InternalOrder
 		GetBalances(ctx context.Context) map[string]*entity.BalanceObject
 		GetTradingPairInfo(ctx context.Context, jetCryptoPair string) decimal.Decimal

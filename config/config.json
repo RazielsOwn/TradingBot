@@ -25,7 +25,7 @@
         "Secret": "",
         "Pair": "BTC,USDC",
         "Currency": "BTC",
-        "CryptoAddress": "",
+        "CryptoAddress": "testAddress",
         "UsdcUsageLimit": 0.4
       },
       "TradingSettings": {
@@ -34,7 +34,7 @@
         "Secret": "",
         "Pair": "USDC_BTC",
         "Currency": "BTC",
-        "CryptoAddress": "",
+        "CryptoAddress": "testAddress",
         "UsdcUsageLimit": 0.8
       }
     }

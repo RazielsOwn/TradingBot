@@ -67,7 +67,7 @@ func balanceWorker(t *testing.T) *BalanceWorker {
 		settings:              currencySettings,
 		tradingSystemRequests: tradingSystemRequests,
 		internalRequests:      internalRequests,
-		WaitGroup:             wg,
+		waitGroup:             wg,
 	}
 }
 
@@ -83,7 +83,7 @@ func TestTransferLogic_TradingSystemWithdraw_Success(t *testing.T) {
 	var internalBalance = decimal.NewFromFloat32(100)
 	var totalBalanceUpper = decimal.NewFromFloat32(110)
 
-	got := bw.TransferLogic(diffABS, thresholdAbs, tradingBalance, totalBalanceLower, internalBalance, totalBalanceUpper, context.Background())
+	got := bw.transferLogic(diffABS, thresholdAbs, tradingBalance, totalBalanceLower, internalBalance, totalBalanceUpper, context.Background())
 	want := true
 
 	if got != want {
@@ -103,8 +103,28 @@ func TestTransferLogic_InternalWithdraw_Success(t *testing.T) {
 	var internalBalance = decimal.NewFromFloat32(100)
 	var totalBalanceUpper = decimal.NewFromFloat32(90)
 
-	got := bw.TransferLogic(diffABS, thresholdAbs, tradingBalance, totalBalanceLower, internalBalance, totalBalanceUpper, context.Background())
+	got := bw.transferLogic(diffABS, thresholdAbs, tradingBalance, totalBalanceLower, internalBalance, totalBalanceUpper, context.Background())
 	want := true
+
+	if got != want {
+		t.Errorf("got %t, wanted %t", got, want)
+	}
+}
+
+func TestTransferLogic_Withdraw_NotSuccess(t *testing.T) {
+	t.Parallel()
+
+	var bw = balanceWorker(t)
+
+	var diffABS = decimal.NewFromFloat32(100)
+	var thresholdAbs = decimal.NewFromFloat32(1)
+	var tradingBalance = decimal.NewFromFloat32(10)
+	var totalBalanceLower = decimal.NewFromFloat32(80)
+	var internalBalance = decimal.NewFromFloat32(10)
+	var totalBalanceUpper = decimal.NewFromFloat32(90)
+
+	got := bw.transferLogic(diffABS, thresholdAbs, tradingBalance, totalBalanceLower, internalBalance, totalBalanceUpper, context.Background())
+	want := false
 
 	if got != want {
 		t.Errorf("got %t, wanted %t", got, want)

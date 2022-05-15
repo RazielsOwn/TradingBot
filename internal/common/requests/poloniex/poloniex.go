@@ -210,7 +210,7 @@ func (cr *PoloniexRequests) Buy(ctx context.Context, tradingSystemPair string, t
 			continue
 		}
 
-		cr.logger.Info(fmt.Sprintf("buy response is : %v", paymentResponse))
+		cr.logger.Info("Poloniex : buy response is : %v", paymentResponse)
 
 		orders := struct {
 			OrderNumber     string `json:"orderNumber"`
@@ -251,14 +251,14 @@ func (cr *PoloniexRequests) Buy(ctx context.Context, tradingSystemPair string, t
 					orderPrice = orderPrice.Mul(decimal.NewFromFloat(1.001)).RoundDown(8)
 					if orderPrice.GreaterThan(internalPrice) {
 						// send message to owner
-						cr.logger.Error(fmt.Sprintf("can't buy order in Poloniex. Max price reached : %v, amount : %v, pair : %v!", internalPrice, requiredAmount, internalPair))
+						cr.logger.Error("Poloniex : can't buy order. Max price reached : %v, amount : %v, pair : %v!", internalPrice, requiredAmount, internalPair)
 						break
 					}
 					continue
 				}
 			}
 
-			cr.logger.Error(fmt.Sprintf("error on Buy request in Poloniex for pair : %v, amount: %v, response is : %v!", internalPair, requiredAmount, paymentResponse))
+			cr.logger.Error("Poloniex : error on Buy request for pair : %v, amount: %v, response is : %v!", internalPair, requiredAmount, paymentResponse)
 			break
 		}
 
@@ -272,7 +272,7 @@ func (cr *PoloniexRequests) Buy(ctx context.Context, tradingSystemPair string, t
 		resultedAmount = resultedAmount.RoundDown(8)
 		//check if withdrewAmount different from requiredAmount
 		if resultedAmount.LessThan(requiredAmount) {
-			cr.logger.Error(fmt.Sprintf("resulted amount in Poloniex : %v, is lower than Required Amount : %v", resultedAmount, requiredAmount))
+			cr.logger.Error("Poloniex : resulted amount : %v, is lower than Required Amount : %v", resultedAmount, requiredAmount)
 			return false
 		}
 		return true
@@ -299,7 +299,7 @@ func (cr *PoloniexRequests) Sell(ctx context.Context, tradingSystemPair string, 
 			continue
 		}
 
-		cr.logger.Info(fmt.Sprintf("sell response is : %v", paymentResponse))
+		cr.logger.Info("Poloniex : sell response is : %v", paymentResponse)
 
 		orders := struct {
 			OrderNumber     string `json:"orderNumber"`
@@ -340,14 +340,14 @@ func (cr *PoloniexRequests) Sell(ctx context.Context, tradingSystemPair string, 
 					orderPrice = orderPrice.Mul(decimal.NewFromFloat(0.999)).RoundDown(8)
 					if orderPrice.LessThan(internalPrice) {
 						// send message to owner
-						cr.logger.Error(fmt.Sprintf("can't sell order in Poloniex. Max price reached : %v, amount : %v, pair : %v!", internalPrice, requiredAmount, internalPair))
+						cr.logger.Error("Poloniex : can't sell order. Max price reached : %v, amount : %v, pair : %v!", internalPrice, requiredAmount, internalPair)
 						break
 					}
 					continue
 				}
 			}
 
-			cr.logger.Error(fmt.Sprintf("error on Buy request in Poloniex for pair : %v, amount: %v, response is : %v!", internalPair, requiredAmount, paymentResponse))
+			cr.logger.Error("Poloniex : error on Buy request for pair : %v, amount: %v, response is : %v!", internalPair, requiredAmount, paymentResponse)
 			break
 		}
 
@@ -362,7 +362,7 @@ func (cr *PoloniexRequests) Sell(ctx context.Context, tradingSystemPair string, 
 		//check if withdrewAmount different from requiredAmount
 		if resultedAmount.LessThan(requiredAmount) {
 			// send message to owner
-			cr.logger.Error(fmt.Sprintf("resulted amount in Poloniex : %v, is lower than Required Amount : %v", resultedAmount, requiredAmount))
+			cr.logger.Error("Poloniex : resulted amount : %v, is lower than Required Amount : %v", resultedAmount, requiredAmount)
 			return false
 		}
 		return true
@@ -381,7 +381,7 @@ func (pr *PoloniexRequests) Withdraw(ctx context.Context, addr string, withdrawa
 		requestData["currencyToWithdrawAs"] = tradingSystemWithdrawalNetwork
 	}
 
-	pr.logger.Info("withdraw request is : %v", requestData)
+	pr.logger.Info("Poloniex : withdraw request is : %v", requestData)
 	var paymentResponse = pr.queryPrivate(ctx, "withdraw", requestData)
 	if len(paymentResponse) == 0 {
 		return false
@@ -392,7 +392,7 @@ func (pr *PoloniexRequests) Withdraw(ctx context.Context, addr string, withdrawa
 	json.Unmarshal([]byte(paymentResponse), &result)
 	val, found := result["error"]
 	if found {
-		pr.logger.Error(fmt.Sprintf("error on Poloniex 'withdraw' response is : %v", val))
+		pr.logger.Error("Poloniex : error on 'withdraw' response is : %v", val)
 		return false
 	}
 
@@ -439,7 +439,7 @@ func (cr *PoloniexRequests) queryPublic(ctx context.Context, method string, requ
 	var resText, statusCode, err1 = cr.helperMethods.HttpGet(ctx, u, "", map[string]string{})
 
 	if statusCode != 200 {
-		cr.logger.Error(fmt.Sprintf("response status : %v, %v : %v", statusCode, err1, resText))
+		cr.logger.Error("Poloniex : response status : %v, %v : %v", statusCode, err1, resText)
 		return ""
 	}
 
@@ -513,7 +513,7 @@ func (pr *PoloniexRequests) doRequest(ctx context.Context, requestData map[strin
 	var resText, statusCode, err1 = pr.helperMethods.HttpPost(ctx, u, dataBytes, "application/x-www-form-urlencoded", webHeaders)
 
 	if statusCode != 200 {
-		pr.logger.Error(fmt.Sprintf("response status : %v, %v : %v", statusCode, err1, resText))
+		pr.logger.Error("Poloniex : response status : %v, %v : %v", statusCode, err1, resText)
 	}
 
 	return resText, statusCode

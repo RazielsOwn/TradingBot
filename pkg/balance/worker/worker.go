@@ -2,6 +2,8 @@ package worker
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -21,7 +23,7 @@ type BalanceWorker struct {
 	settings              config.CryptoCurrency
 	tradingSystemRequests common.ITradingSystemRequest
 	internalRequests      common.IInternalRequest
-	WaitGroup             *sync.WaitGroup
+	waitGroup             *sync.WaitGroup
 	notify                chan error
 	running               bool
 }
@@ -34,7 +36,7 @@ func New(ctx context.Context, wg *sync.WaitGroup, currencySettings config.Crypto
 		settings:              currencySettings,
 		tradingSystemRequests: tradingsystemReq.New(l, helpermethods.New(l), currencySettings.TradingSettings),
 		internalRequests:      jetcryptoReq.New(l, helpermethods.New(l), currencySettings.InternalSettings),
-		WaitGroup:             wg,
+		waitGroup:             wg,
 	}
 
 	go func(bw *BalanceWorker) {
@@ -46,14 +48,14 @@ func New(ctx context.Context, wg *sync.WaitGroup, currencySettings config.Crypto
 
 // Start worker
 func (s *BalanceWorker) Start() {
-	s.WaitGroup.Add(1)
+	s.waitGroup.Add(1)
 	s.running = true
 	s.logger.Debug("Start BalanceWorker called")
 }
 
 // Shutdown -.
 func (s *BalanceWorker) Stop() {
-	s.WaitGroup.Done()
+	s.waitGroup.Done()
 	s.running = false
 	s.logger.Debug("Stop BalanceWorker called")
 }
@@ -77,8 +79,10 @@ func (s *BalanceWorker) DoWork(ctx context.Context) {
 			// try to get trading system crypto address
 			s.settings.TradingSettings.CryptoAddress = s.tradingSystemRequests.GetCryptoAddress(ctx, s.settings.TradingSettings.Currency, s.settings.TradingSettings.WithdrawalNetwork)
 			if len(s.settings.TradingSettings.CryptoAddress) == 0 {
-				s.logger.Error("Balancer %v : Can't get Trading system CryptoAddress!", s.settings.TradingSettings.Currency)
-				continue
+				var errStr = fmt.Sprintf("Balancer %v : Can't get Trading system CryptoAddress!", s.settings.TradingSettings.Currency)
+				s.logger.Error(errStr)
+				s.notify <- errors.New(errStr)
+				break
 			}
 		}
 
@@ -86,20 +90,22 @@ func (s *BalanceWorker) DoWork(ctx context.Context) {
 			// try to get internal crypto address
 			s.settings.InternalSettings.CryptoAddress = s.internalRequests.GetCryptoAddress(ctx, s.settings.InternalSettings.Currency)
 			if len(s.settings.InternalSettings.CryptoAddress) == 0 {
-				s.logger.Error("Balancer %v : Can't get Internal CryptoAddress!", s.settings.InternalSettings.Currency)
-				continue
+				var errStr = fmt.Sprintf("Balancer %v : Can't get Internal CryptoAddress!", s.settings.InternalSettings.Currency)
+				s.logger.Error(errStr)
+				s.notify <- errors.New(errStr)
+				break
 			}
 		}
 
 		var internalBalanceCache = s.internalRequests.GetBalances(ctx)
 		if len(internalBalanceCache) == 0 {
-			s.logger.Error("tradingWorker Error : Can't get own internalBalances!!!")
+			s.logger.Error("Balancer Error : Can't get own internalBalances!!!")
 			continue
 		}
 
 		var intBalance, found = internalBalanceCache[s.settings.InternalSettings.Currency]
 		if !found {
-			s.logger.Error("tradingWorker Error : Can't get own internalBalances!!!")
+			s.logger.Error("Balancer Error : Can't get own internalBalance!!!")
 			continue
 		}
 
@@ -107,29 +113,29 @@ func (s *BalanceWorker) DoWork(ctx context.Context) {
 
 		var tradingBalanceCache = s.tradingSystemRequests.GetTradingBalances(ctx)
 		if len(tradingBalanceCache) == 0 {
-			s.logger.Error("tradingWorker Error : Can't get own tradingSystemBalance!!!")
+			s.logger.Error("Balancer Error : Can't get tradingSystemBalances!!!")
 			continue
 		}
 
-		var tsBalance, found1 = tradingBalanceCache[s.settings.InternalSettings.Currency]
+		var tsBalance, found1 = tradingBalanceCache[s.settings.TradingSettings.Currency]
 		if !found1 {
-			s.logger.Error("tradingWorker Error : Can't get own tradingSystemBalance!!!")
+			s.logger.Error("Balancer Error : Can't get tradingSystemBalance!!!")
 			continue
 		}
 
 		var tradingBalance = tsBalance.Balance
-		s.logger.Debug("Balancer %v tradingBalance is : %v, internalBalance is : %v", s.settings.InternalSettings.Currency, tradingBalance, internalBalance)
+		s.logger.Debug("Balancer %v tradingBalance is : %v, internalBalance is : %v", s.settings.TradingSettings.Currency, tradingBalance, internalBalance)
 
-		var totalBalance = tradingBalance.Add(internalBalance)
-		var diffABS = tradingBalance.Sub(totalBalance.Mul((decimal.NewFromInt(1).Sub(s.settings.BalancePercent)))).Abs()
-		var totalBalanceLower = totalBalance.Mul((decimal.NewFromInt(1).Sub(s.settings.BalancePercent.Sub(s.settings.ThresholdPercent))))
-		var totalBalanceUpper = totalBalance.Mul((s.settings.BalancePercent.Add(s.settings.ThresholdPercent)))
+		var totalBalance = tradingBalance.Add(internalBalance).RoundDown(8)
+		var diffABS = tradingBalance.Sub(totalBalance.Mul((decimal.NewFromInt(1).Sub(s.settings.BalancePercent)))).Abs().RoundDown(8)
+		var totalBalanceLower = totalBalance.Mul((decimal.NewFromInt(1).Sub(s.settings.BalancePercent.Sub(s.settings.ThresholdPercent)))).RoundDown(8)
+		var totalBalanceUpper = totalBalance.Mul((s.settings.BalancePercent.Add(s.settings.ThresholdPercent))).RoundDown(8)
 
-		s.TransferLogic(diffABS, s.settings.ThresholdAbs, tradingBalance, totalBalanceLower, internalBalance, totalBalanceUpper, ctx)
+		s.transferLogic(diffABS, s.settings.ThresholdAbs, tradingBalance, totalBalanceLower, internalBalance, totalBalanceUpper, ctx)
 	}
 }
 
-func (s *BalanceWorker) TransferLogic(diffABS decimal.Decimal, thresholdAbs decimal.Decimal, tradingBalance decimal.Decimal, totalBalanceLower decimal.Decimal, internalBalance decimal.Decimal, totalBalanceUpper decimal.Decimal, ctx context.Context) bool {
+func (s *BalanceWorker) transferLogic(diffABS decimal.Decimal, thresholdAbs decimal.Decimal, tradingBalance decimal.Decimal, totalBalanceLower decimal.Decimal, internalBalance decimal.Decimal, totalBalanceUpper decimal.Decimal, ctx context.Context) bool {
 	var success = false
 
 	if diffABS.GreaterThan(thresholdAbs) && (tradingBalance.GreaterThan(totalBalanceLower) || internalBalance.GreaterThan(totalBalanceUpper)) {

@@ -26,6 +26,10 @@ func New(ctx context.Context, wg *sync.WaitGroup, cryptoCurrencies []config.Cryp
 	}
 
 	for _, item := range cryptoCurrencies {
+		// skip empty currencies
+		if len(item.InternalSettings.Currency) == 0 {
+			continue
+		}
 		wk, err := balance.New(ctx, wg, item, l, s.notify)
 		if err != nil {
 			return nil, fmt.Errorf("BalanceWorker.New: %w", err)
