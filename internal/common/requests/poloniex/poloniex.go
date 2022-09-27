@@ -38,13 +38,13 @@ func New(l logger.ILogger, hm common.IHelperMethods, cs config.TradingSettings) 
 	}
 }
 
-func (cr *PoloniexRequests) GetTradingBalances(ctx context.Context) map[string]*entity.BalanceObject {
+func (pr *PoloniexRequests) GetTradingBalances(ctx context.Context) map[string]*entity.BalanceObject {
 	// 1 minute cache
-	if cr.cacheUpdate.Add(1 * time.Minute).After(time.Now().UTC()) {
-		return cr.balanceCache
+	if pr.cacheUpdate.Add(1 * time.Minute).After(time.Now().UTC()) {
+		return pr.balanceCache
 	}
 
-	var balancesStr = cr.queryPrivate(ctx, "returnBalances", map[string]string{})
+	var balancesStr = pr.queryPrivate(ctx, "returnBalances", map[string]string{})
 	if len(balancesStr) == 0 {
 		return nil
 	}
@@ -62,15 +62,10 @@ func (cr *PoloniexRequests) GetTradingBalances(ctx context.Context) map[string]*
 		}
 	}
 
-	cr.balanceCache = res
-	cr.cacheUpdate = time.Now().UTC()
+	pr.balanceCache = res
+	pr.cacheUpdate = time.Now().UTC()
 
 	return res
-}
-
-type orderItem struct {
-	Volume decimal.Decimal
-	Price  decimal.Decimal
 }
 
 func (ord *orderItem) UnmarshalJSON(data []byte) error {
@@ -84,12 +79,12 @@ func (ord *orderItem) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (cr *PoloniexRequests) GetPublicTradingOrders(ctx context.Context, tradingSystemPair string, usdcTradingLimit decimal.Decimal, cryptoTradingLimit decimal.Decimal, internalCryptoBalance decimal.Decimal, internalUsdcBalance decimal.Decimal, pairMinAmount decimal.Decimal) []*entity.TradingOrder {
+func (pr *PoloniexRequests) GetPublicTradingOrders(ctx context.Context, tradingSystemPair string, usdcTradingLimit decimal.Decimal, cryptoTradingLimit decimal.Decimal, internalCryptoBalance decimal.Decimal, internalUsdcBalance decimal.Decimal, pairMinAmount decimal.Decimal) []*entity.TradingOrder {
 	var requestData map[string]string = make(map[string]string)
 	requestData["currencyPair"] = tradingSystemPair
 	requestData["depth"] = "20"
 
-	var tradingOrders = cr.queryPublic(ctx, "returnOrderBook", requestData)
+	var tradingOrders = pr.queryPublic(ctx, "returnOrderBook", requestData)
 	if len(tradingOrders) == 0 {
 		return nil
 	}
@@ -192,7 +187,7 @@ func (cr *PoloniexRequests) GetPublicTradingOrders(ctx context.Context, tradingS
 	return res
 }
 
-func (cr *PoloniexRequests) Buy(ctx context.Context, tradingSystemPair string, tradingSystemPrice decimal.Decimal, internalPrice decimal.Decimal, amount decimal.Decimal, internalPair string) bool {
+func (pr *PoloniexRequests) Buy(ctx context.Context, tradingSystemPair string, tradingSystemPrice decimal.Decimal, internalPrice decimal.Decimal, amount decimal.Decimal, internalPair string) bool {
 	// Poloniex taker fee (trade volume < 26k USD @ 30 days): 0.25%
 	var requiredAmount = amount.Mul(decimal.NewFromFloat(1.003))
 	var orderPrice = tradingSystemPrice
@@ -205,12 +200,12 @@ func (cr *PoloniexRequests) Buy(ctx context.Context, tradingSystemPair string, t
 		requestData["fillOrKill"] = "1"
 		requestData["amount"] = requiredAmount.String()
 
-		var paymentResponse = cr.queryPrivate(ctx, "buy", requestData)
+		var paymentResponse = pr.queryPrivate(ctx, "buy", requestData)
 		if len(paymentResponse) == 0 {
 			continue
 		}
 
-		cr.logger.Info("Poloniex : buy response is : %v", paymentResponse)
+		pr.logger.Info("Poloniex : buy response is : %v", paymentResponse)
 
 		orders := struct {
 			OrderNumber     string `json:"orderNumber"`
@@ -251,14 +246,14 @@ func (cr *PoloniexRequests) Buy(ctx context.Context, tradingSystemPair string, t
 					orderPrice = orderPrice.Mul(decimal.NewFromFloat(1.001)).RoundDown(8)
 					if orderPrice.GreaterThan(internalPrice) {
 						// send message to owner
-						cr.logger.Error("Poloniex : can't buy order. Max price reached : %v, amount : %v, pair : %v!", internalPrice, requiredAmount, internalPair)
+						pr.logger.Error("Poloniex : can't buy order. Max price reached : %v, amount : %v, pair : %v!", internalPrice, requiredAmount, internalPair)
 						break
 					}
 					continue
 				}
 			}
 
-			cr.logger.Error("Poloniex : error on Buy request for pair : %v, amount: %v, response is : %v!", internalPair, requiredAmount, paymentResponse)
+			pr.logger.Error("Poloniex : error on Buy request for pair : %v, amount: %v, response is : %v!", internalPair, requiredAmount, paymentResponse)
 			break
 		}
 
@@ -272,7 +267,7 @@ func (cr *PoloniexRequests) Buy(ctx context.Context, tradingSystemPair string, t
 		resultedAmount = resultedAmount.RoundDown(8)
 		//check if withdrewAmount different from requiredAmount
 		if resultedAmount.LessThan(requiredAmount) {
-			cr.logger.Error("Poloniex : resulted amount : %v, is lower than Required Amount : %v", resultedAmount, requiredAmount)
+			pr.logger.Error("Poloniex : resulted amount : %v, is lower than Required Amount : %v", resultedAmount, requiredAmount)
 			return false
 		}
 		return true
@@ -281,7 +276,7 @@ func (cr *PoloniexRequests) Buy(ctx context.Context, tradingSystemPair string, t
 	return false
 }
 
-func (cr *PoloniexRequests) Sell(ctx context.Context, tradingSystemPair string, tradingSystemPrice decimal.Decimal, internalPrice decimal.Decimal, amount decimal.Decimal, internalPair string) bool {
+func (pr *PoloniexRequests) Sell(ctx context.Context, tradingSystemPair string, tradingSystemPrice decimal.Decimal, internalPrice decimal.Decimal, amount decimal.Decimal, internalPair string) bool {
 
 	var requiredAmount = amount.Mul(internalPrice).RoundDown(8)
 	var orderPrice = tradingSystemPrice
@@ -294,12 +289,12 @@ func (cr *PoloniexRequests) Sell(ctx context.Context, tradingSystemPair string, 
 		requestData["fillOrKill"] = "1"
 		requestData["amount"] = requiredAmount.String()
 
-		var paymentResponse = cr.queryPrivate(ctx, "sell", requestData)
+		var paymentResponse = pr.queryPrivate(ctx, "sell", requestData)
 		if len(paymentResponse) == 0 {
 			continue
 		}
 
-		cr.logger.Info("Poloniex : sell response is : %v", paymentResponse)
+		pr.logger.Info("Poloniex : sell response is : %v", paymentResponse)
 
 		orders := struct {
 			OrderNumber     string `json:"orderNumber"`
@@ -340,14 +335,14 @@ func (cr *PoloniexRequests) Sell(ctx context.Context, tradingSystemPair string, 
 					orderPrice = orderPrice.Mul(decimal.NewFromFloat(0.999)).RoundDown(8)
 					if orderPrice.LessThan(internalPrice) {
 						// send message to owner
-						cr.logger.Error("Poloniex : can't sell order. Max price reached : %v, amount : %v, pair : %v!", internalPrice, requiredAmount, internalPair)
+						pr.logger.Error("Poloniex : can't sell order. Max price reached : %v, amount : %v, pair : %v!", internalPrice, requiredAmount, internalPair)
 						break
 					}
 					continue
 				}
 			}
 
-			cr.logger.Error("Poloniex : error on Buy request for pair : %v, amount: %v, response is : %v!", internalPair, requiredAmount, paymentResponse)
+			pr.logger.Error("Poloniex : error on Buy request for pair : %v, amount: %v, response is : %v!", internalPair, requiredAmount, paymentResponse)
 			break
 		}
 
@@ -362,7 +357,7 @@ func (cr *PoloniexRequests) Sell(ctx context.Context, tradingSystemPair string, 
 		//check if withdrewAmount different from requiredAmount
 		if resultedAmount.LessThan(requiredAmount) {
 			// send message to owner
-			cr.logger.Error("Poloniex : resulted amount : %v, is lower than Required Amount : %v", resultedAmount, requiredAmount)
+			pr.logger.Error("Poloniex : resulted amount : %v, is lower than Required Amount : %v", resultedAmount, requiredAmount)
 			return false
 		}
 		return true
@@ -419,12 +414,12 @@ func (pr *PoloniexRequests) GetCryptoAddress(ctx context.Context, currency strin
 	return ""
 }
 
-func (cr *PoloniexRequests) queryPublic(ctx context.Context, method string, requestData map[string]string) string {
+func (pr *PoloniexRequests) queryPublic(ctx context.Context, method string, requestData map[string]string) string {
 
 	requestData["command"] = method
-	u, err := url.Parse(cr.baseUrl + "/public")
+	u, err := url.Parse(pr.baseUrl + "/public")
 	if err != nil {
-		cr.logger.Error(err)
+		pr.logger.Error(err)
 		return ""
 	}
 
@@ -436,10 +431,10 @@ func (cr *PoloniexRequests) queryPublic(ctx context.Context, method string, requ
 	}
 	u.RawQuery = q.Encode()
 
-	var resText, statusCode, err1 = cr.helperMethods.HttpGet(ctx, u, "", map[string]string{})
+	var resText, statusCode, err1 = pr.helperMethods.HttpGet(ctx, u, "", map[string]string{})
 
 	if statusCode != 200 {
-		cr.logger.Error("Poloniex : response status : %v, %v : %v", statusCode, err1, resText)
+		pr.logger.Error("Poloniex : response status : %v, %v : %v", statusCode, err1, resText)
 		return ""
 	}
 
@@ -517,4 +512,9 @@ func (pr *PoloniexRequests) doRequest(ctx context.Context, requestData map[strin
 	}
 
 	return resText, statusCode
+}
+
+type orderItem struct {
+	Volume decimal.Decimal
+	Price  decimal.Decimal
 }
