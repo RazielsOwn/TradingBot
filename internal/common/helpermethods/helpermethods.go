@@ -5,7 +5,7 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/sha512"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"trading_bot/pkg/logger"
@@ -51,7 +51,7 @@ func (hm HelperMethods) HttpGet(ctx context.Context, url *url.URL, contentType s
 	}
 
 	defer resp.Body.Close()
-	responseBody, err := ioutil.ReadAll(resp.Body)
+	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		hm.logger.Error(err)
 		return "", 500, err
@@ -90,7 +90,7 @@ func (hm HelperMethods) HttpPost(ctx context.Context, url *url.URL, data []byte,
 	}
 
 	defer resp.Body.Close()
-	responseBody, err := ioutil.ReadAll(resp.Body)
+	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		hm.logger.Error(err)
 		return "", 500, err
