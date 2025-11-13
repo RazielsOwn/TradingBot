@@ -43,7 +43,7 @@ func Run(cfg *config.Config) {
 
 	select {
 	case s := <-interrupt:
-		l.Info("app - Run - signal: " + s.String())
+		l.Info("app - Run - signal: %v", s.String())
 	case err = <-balManager.Notify():
 		l.Error("app - Run - BalanceManager.Notify: %w", err)
 	case err = <-tradeManager.Notify():

@@ -55,8 +55,8 @@ func (s *BalanceWorker) Start() {
 
 // Shutdown -.
 func (s *BalanceWorker) Stop() {
-	s.waitGroup.Done()
 	s.running = false
+	s.waitGroup.Done()
 	s.logger.Debug("Stop BalanceWorker called")
 }
 

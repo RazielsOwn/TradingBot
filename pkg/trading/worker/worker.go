@@ -155,7 +155,7 @@ func (s *TradingWorker) DoWork(ctx context.Context) {
 		}
 		var cryptoTradingLimit = tsBalance.Balance
 
-		var tsUSDCBalance, found3 = tradingBalanceCache[s.settings.TradingSettings.Currency]
+		var tsUSDCBalance, found3 = tradingBalanceCache["USDC"]
 		if !found3 {
 			s.logger.Error("TradingWorker Error : Can't get tradingSystem USDC Balance!!!")
 			continue
@@ -219,8 +219,9 @@ func (s *TradingWorker) removeOldOrders(ctx context.Context) bool {
 
 func (s *TradingWorker) removeInternalOrder(ctx context.Context, orderId uuid.UUID) bool {
 
-	var currFrom = strings.Split(s.settings.InternalSettings.Pair, ",")[0]
-	var currTo = strings.Split(s.settings.InternalSettings.Pair, ",")[1]
+	var currencies = strings.Split(s.settings.InternalSettings.Pair, ",")
+	var currFrom = currencies[0]
+	var currTo = currencies[1]
 
 	var deleteRes = s.internalRequests.RemoveOrder(ctx, orderId, currFrom, currTo)
 
@@ -242,8 +243,9 @@ func (s *TradingWorker) addNewOrderPair(ctx context.Context, order *entity.Tradi
 		newOrder.InternalPrice = newOrder.TradingSystemPrice.Mul(s.settings.BuyMultiplier).RoundDown(8)
 	}
 
-	var currFrom = strings.Split(s.settings.InternalSettings.Pair, ",")[0]
-	var currTo = strings.Split(s.settings.InternalSettings.Pair, ",")[1]
+	var currencies = strings.Split(s.settings.InternalSettings.Pair, ",")
+	var currFrom = currencies[0]
+	var currTo = currencies[1]
 
 	var success, id = s.internalRequests.AddOrder(ctx, currFrom, currTo, newOrder.InternalAmount, newOrder.InternalPrice, newOrder.IsSellOrder)
 	if success {

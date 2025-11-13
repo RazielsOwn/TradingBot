@@ -18,7 +18,7 @@ type TradingManager struct {
 
 func New(ctx context.Context, wg *sync.WaitGroup, cryptoCurrencies []config.CryptoCurrency, l logger.ILogger) (*TradingManager, error) {
 	if len(cryptoCurrencies) == 0 {
-		return nil, errors.New("tradingmanager no currencies provided")
+		return nil, errors.New("no currencies provided for Tradingmanager")
 	}
 
 	s := &TradingManager{
